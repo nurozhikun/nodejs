@@ -31,8 +31,7 @@ TcpServer.prototype.onListened = function() {
 
 TcpServer.prototype.onConnected = function(socket) {
 	console.log('Client: %s:%d connected: %d', socket.remoteAddress, socket.remotePort, socket.localPort);
-	var i = 0,
-		len = this._clientArray.length;
+	var i = 0, len = this._clientArray.length;
 	while (i < len && this._clientArray[i] !== null) {
 		++i;
 	}
@@ -86,6 +85,9 @@ var Client = function(server, socket, index) {
 	});
 	socket.on('close', function(had_error) {
 		self.onClose(had_error);
+	});
+	socket.on('error', function(error) {
+		self.onError(error);
 	});
 }
 
@@ -206,6 +208,11 @@ Client.prototype.backupData = function(inspectLeft, dataLeft) {
 Client.prototype.onClose = function(had_error) {
 	//socket has closed
 	this._server.emit('deleteclient', this);
+	console.log("close socket");
+}
+
+Client.prototype.onError = function(error) {
+	console.log(error);
 }
 
 /*
