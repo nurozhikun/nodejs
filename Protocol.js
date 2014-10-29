@@ -11,10 +11,9 @@
  * END[4 bytes]:
  *   [2 bytes]: kept for checkout
  *   [2 bytes]:[0xFDFC]:it is a fixed value, marh the end of a package;
- *
  */
 var Protocol = module.exports = function() {
-	this._command      = this.COMMAND['cmd_none'];
+	this._command      = Protocol.COMMAND['cmd_none'];
 	this._bNewCmd	   = false;
 	this._nCmdCount    = 0;
 	this._bHeader 	   = false;
@@ -28,13 +27,17 @@ Protocol.prototype.hasNewCommand = function() {
 	return this._bNewCmd;
 }
 
-Protocol.prototype.COMMAND = { 
+Protocol.prototype.getUserId = function() {
+	return this._userId;
+}
+
+Protocol.COMMAND = { 
 	'cmd_none': 0,
 	'cmd_get_user_id': 1,
 	'cmd_': 2 
 };
 
-Protocol.prototype.G_CONNECTED_INFORM = {
+Protocol.G_CONNECTED_INFORM = {
 	'header':'&0INFORMBEGIN#0',
 	'end':'&0INFORMEND#0', 
 	'maxlen':1024
@@ -44,7 +47,7 @@ Protocol.prototype.decode = function(bufferData) {
 	var nBytes = 0;
 	var nCmdCount = this._nCmdCount;
 	this._bNewCmd = false;
-	if( null === this._decodeFunc /*this.COMMAND['cmd_none'] === this._command*/ ) {
+	if( null === this._decodeFunc /*Protocol.COMMAND['cmd_none'] === this._command*/ ) {
 		nBytes = this.inspectType(bufferData);
 		if( nCmdCount !== this._nCmdCount ) {
 			if( this._protocolType === 'BINARY') {
@@ -54,15 +57,16 @@ Protocol.prototype.decode = function(bufferData) {
 				this._decodeFunc = codeString;
 			}
 			this._bNewCmd = true;
+			console.log('userid = %d', this._userId);
 		}
 	}
 	else{
 		nBytes = this._decodeFunc(bufferData);
 		if( nCmdCount !== this._nCmdCount ) {//new COMMAND
-			;
 			this._bNewCmd = true;
 		}
 	}
+	return nBytes;
 }
 
 Protocol.prototype.inspectType = function(bufferData) {
@@ -71,11 +75,11 @@ Protocol.prototype.inspectType = function(bufferData) {
 	var bytesProcessed = 0;
 	var strFound = null;
 	if( !this._bHeader ) {
-		indexFind = stringData.indexOf(this.G_CONNECTED_INFORM['header']);
+		indexFind = stringData.indexOf(Protocol.G_CONNECTED_INFORM['header']);
 		if( -1 !== indexFind ) {
 			this._bHeader = true;
-			bytesProcessed += indexFind + this.G_CONNECTED_INFORM['header'].length;
-			stringData = stringData.slice(indexFind + this.G_CONNECTED_INFORM['header'].length);
+			bytesProcessed += indexFind + Protocol.G_CONNECTED_INFORM['header'].length;
+			stringData = stringData.slice(indexFind + Protocol.G_CONNECTED_INFORM['header'].length);
 		}
 		else{
 			return bytesProcessed;
@@ -98,13 +102,13 @@ Protocol.prototype.inspectType = function(bufferData) {
 		}
 	}
 	if( !this._bEnd ){
-		indexFind = stringData.indexOf(this.G_CONNECTED_INFORM['end']);
+		indexFind = stringData.indexOf(Protocol.G_CONNECTED_INFORM['end']);
 		if( -1 !== indexFind ) {
 			this._bEnd = true;
-			bytesProcessed += indexFind + this.G_CONNECTED_INFORM['end'].length;
-			this._command = this.COMMAND['cmd_get_user_id'];
+			bytesProcessed += indexFind + Protocol.G_CONNECTED_INFORM['end'].length;
+			this._command = Protocol.COMMAND['cmd_get_user_id'];
 			++this._nCmdCount;
-//			stringData = stringData.slice(indexFind + this.G_CONNECTED_INFORM['end'].length);
+//			stringData = stringData.slice(indexFind + Protocol.G_CONNECTED_INFORM['end'].length);
 		}
 	}
 	return bytesProcessed;
